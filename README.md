@@ -1,2 +1,2 @@
 # nevin
-kth nearest neighbor bayes factor/evidence estimator
+kth nearest neighbor Bayes Factor/Evidence estimator.
