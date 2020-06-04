@@ -68,7 +68,7 @@ def log_evidence(chain, lnlike_chain, prior_samples):
     # drawn from them using k-th Nearest Neighbor estimator 
     D_kl = KL_w2009_eq29(chain, prior_samples)
 
-    return exp_lnlike + D_kl 
+    return exp_lnlike - D_kl 
 
 
 def sample_prior(priorfn, M): 

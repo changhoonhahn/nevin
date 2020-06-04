@@ -1,0 +1,64 @@
+\section{Estimator} \label{sec:estimator}
+Consider the commonly used Kullback-Leibler (KL) divergence between two
+distributions $p(x)$ and $g(x)$:
+\beq
+    \kl{p}{q} = \int p(x)~\log\frac{p(x)}{q(x)}~{\rm d}x. 
+\eeq
+The KL divergence between the posterior $p = p(\theta \given D, m)$ and prior
+$\pi = p(\theta | m)$ is then 
+\beq
+    \kl{p}{\pi} = \int p(\theta \given D, m)~\log\frac{p(\theta \given D, m)}{p(\theta | m)}~{\rm d}\theta. 
+\eeq
+If we use Bayes' Theorem to substitute for $p(\theta \given D, m)$ in the
+numerator, we can rewrite this as 
+\begin{align}
+    \kl{p}{\pi} &= \int p(\theta \given D,
+    m)~\log\frac{p(D \given \theta, m)}{p(D | m)}~{\rm d}\theta\\ 
+        &= -\log p(D\given m) + \int p(\theta \given D, m)~\log p(D \given \theta, m)~{\rm d}\theta. 
+\end{align}
+The first term of the right hand side is the log evidence and the second term
+is the expectation value of the log likelihood under the posterior, $\big\langle
+\log \mathcal{L} \big\rangle$. 
+
+In other words, if we can estimate the KL divergence between the posterior and
+prior we can also estimate the evidence: 
+\beq \label{eq:estimator}
+p(D\given m) = \big\langle \log \mathcal{L} \big\rangle - \kl{p(D \given \theta, m)}{\pi}.
+\eeq
+In standard Bayesian analyses using MCMC, $\big\langle \log \mathcal{L}
+\big\rangle$ can be easily derived using samples from the posteriors and Monte
+Carlo integration. 
+
+Meanwhile, non-parametric divergence estimators also provide a way to exploit
+samples from the posterior to estimate the divergence. These estimators, which 
+have been applied to Support Distribution Machines and used in the machine
+learning and astronomical literature~\citep[\emph{e.g.}][]{poczos2011,
+poczos2012, poczos2012a, xu2013, ntampaka2015, ntampaka2016,
+ravanbakhsh2017, hahn2019}, allow us to estimate the divergence, $D(p\,||q\,)$, using
+samples $X_{1:n} = \{ X_1, ... X_n \}$ and $Y_{1:m} = \{ Y_1, ... Y_m \}$ 
+drawn from $p$ and $q$ respectively. In our case, $p$ would be the posterior
+and $X_{1:n}$ would be $n$ samples drawn from the posterior (\emph{i.e.} our
+MCMC chain) and $Y_{1:m}$ would be $m$ samples drawn from the prior. 
+
+For the KL divergence, we use the $k$-Nearest Neighbor estimator presented in
+\cite{wang2009}: 
+\beq
+\kl{p}{q} \approx \widehat{D_{\rm KL}}(p\,||\,q) = \frac{d}{n}
+\sum\limits_{i=1}^n \Big[\log \frac{\nu_{\ell_i}(i)}{\rho_{k_i}(i)} \Big] +
+\frac{1}{n} \sum\limits_{i=1}^n\Big[\psi(\ell_i) - \psi(k_i)\Big] + \log
+\frac{m}{n-1}. 
+\eeq
+$\rho_k(i)$ denotes the Euclidean distance of the $k^\mathrm{th}$ nearest neighbor 
+of $X_i$ from sample $X_{1:n}$ and $\nu_\ell(i)$ denotes the Euclidean distance 
+of the $\ell^\mathrm{th}$ nearest neighbor of $Y_i$ in the sample $Y_{1:m}$.
+$\psi$ is the Digamma function: 
+\beq
+\psi(k) = \Gamma'(k)/\Gamma(k)
+\eeq
+$\ell_i$ (and $k_i$) is the number of samples $X_{1:n}$ or $Y_{1:m}$ contained 
+in the ball $B(X_i, \epsilon(i))$ where $\epsilon(i) = {\rm max}(\rho(i),
+\nu(i))$.
+The second term reduces the estimation bias that comes from nonuniformity of
+the distribution near each sample point. 
+\todo{fill in the rest of the details for the estimator (e.g. asymptotic convergence
+of the estimators)} 
