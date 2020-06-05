@@ -18,47 +18,59 @@ numerator, we can rewrite this as
 \end{align}
 The first term of the right hand side is the log evidence and the second term
 is the expectation value of the log likelihood under the posterior, $\big\langle
-\log \mathcal{L} \big\rangle$. 
-
-In other words, if we can estimate the KL divergence between the posterior and
-prior we can also estimate the evidence: 
-\beq \label{eq:estimator}
-p(D\given m) = \big\langle \log \mathcal{L} \big\rangle - \kl{p(D \given \theta, m)}{\pi}.
-\eeq
-In standard Bayesian analyses using MCMC, $\big\langle \log \mathcal{L}
-\big\rangle$ can be easily derived using samples from the posteriors and Monte
-Carlo integration. 
-
-Meanwhile, non-parametric divergence estimators also provide a way to exploit
-samples from the posterior to estimate the divergence. These estimators, which 
-have been applied to Support Distribution Machines and used in the machine
-learning and astronomical literature~\citep[\emph{e.g.}][]{poczos2011,
-poczos2012, poczos2012a, xu2013, ntampaka2015, ntampaka2016,
-ravanbakhsh2017, hahn2019}, allow us to estimate the divergence, $D(p\,||q\,)$, using
-samples $X_{1:n} = \{ X_1, ... X_n \}$ and $Y_{1:m} = \{ Y_1, ... Y_m \}$ 
-drawn from $p$ and $q$ respectively. In our case, $p$ would be the posterior
-and $X_{1:n}$ would be $n$ samples drawn from the posterior (\emph{i.e.} our
-MCMC chain) and $Y_{1:m}$ would be $m$ samples drawn from the prior. 
-
-For the KL divergence, we use the $k$-Nearest Neighbor estimator presented in
-\cite{wang2009}: 
+\log \mathcal{L} \big\rangle$. In standard Bayesian analyses in astronomy where
+we use MCMC to sample the posterior, $\big\langle \log \mathcal{L} \big\rangle$
+can be easily derived with these samples using Monte Carlo integration: 
 \beq
+\big\langle \log \mathcal{L} \big \rangle \approx \frac{1}{n}
+\sum\limits_{i=1}^{n} \log \mathcal{L}(\theta^{(i)})
+\eeq
+Therefore, if we can estimate the KL divergence between the posterior and prior
+we can also estimate the evidence: 
+\beq \label{eq:estimator}
+\log p(D\given m) = \big\langle \log \mathcal{L} \big\rangle - \kl{p(D \given \theta, m)}{\pi}.
+\eeq
+
+To estimate the divergence, we can make use of non-parametric divergence
+estimators, which have been applied to Support Distribution Machines and 
+used in the machine learning and astronomical literature~\citep[\emph{e.g.}][]{poczos2011,
+poczos2012, poczos2012a, xu2013, ntampaka2015, ntampaka2016, ravanbakhsh2017,
+hahn2019}. These estimators allow us to estimate the divergence between 
+distributions $p$ and $q$, $D(p\,||\,q)$ using samples drawn from them. In 
+our case, $p$ and $q$ are the posterior and prior distributions. Again,
+standard analyses already sample the posterir distribution; the prior 
+distribution is typcially straightforward to sample. 
+
+For the KL divergence, we use the $k$-Nearest Neighbor (NN) estimator presented in
+\cite{wang2009}. Let $X_{1:n} = \{ X_1, ... X_n \}$ and $Y_{1:m} = \{ Y_1, ... Y_m \}$
+be $n$ and $m$ samples drawn from the $p$ and $q$ $d$-dimensional distributions, respectively. 
+Then the divergence between $p$ and $q$ can be estimated as: 
+\beq \label{eq:div_est}
 \kl{p}{q} \approx \widehat{D_{\rm KL}}(p\,||\,q) = \frac{d}{n}
 \sum\limits_{i=1}^n \Big[\log \frac{\nu_{\ell_i}(i)}{\rho_{k_i}(i)} \Big] +
 \frac{1}{n} \sum\limits_{i=1}^n\Big[\psi(\ell_i) - \psi(k_i)\Big] + \log
 \frac{m}{n-1}. 
 \eeq
-$\rho_k(i)$ denotes the Euclidean distance of the $k^\mathrm{th}$ nearest neighbor 
-of $X_i$ from sample $X_{1:n}$ and $\nu_\ell(i)$ denotes the Euclidean distance 
-of the $\ell^\mathrm{th}$ nearest neighbor of $Y_i$ in the sample $Y_{1:m}$.
-$\psi$ is the Digamma function: 
+In the first term, $\rho_k(i)$ denotes the Euclidean distance between $X_i$ and 
+the $k^\mathrm{th}$-NN of $X_i$ in sample $\{X_j\}_{i\neq j}$. $\nu_\ell(i)$
+denotes the Euclidean distance between $X_i$ and the $\ell^\mathrm{th}$ NN of
+$X_i$ in the sample $Y_{1:m}$. In the second term, $\psi$ is the Digamma function: 
+$\psi(k) = \Gamma'(k)/\Gamma(k)$.
+This term corrects for the estimation bias that comes from nonuniformity of 
+the distribution near each sample point and guarantees that the estimator is
+asymptotically unbiased. Furthermore, while some $k$-NN estimators require 
+chome choice in $k$ and $\ell$~\citep[\emph{e.g.}][]{poczos2012}, the 
+\cite{wang2009} estimator adaptively determines $\ell_i$ and $k_i$ as the number 
+of samples $X_{1:n}$ and $Y_{1:m}$), respectively, contained in $B(X_i, \epsilon(i))$, 
+a Euclidean ball centered at $X_i$ with radius $\epsilon(i)$. 
 \beq
-\psi(k) = \Gamma'(k)/\Gamma(k)
+\epsilon(i) = \max(\rho(i), \nu(i)) 
 \eeq
-$\ell_i$ (and $k_i$) is the number of samples $X_{1:n}$ or $Y_{1:m}$ contained 
-in the ball $B(X_i, \epsilon(i))$ where $\epsilon(i) = {\rm max}(\rho(i),
-\nu(i))$.
-The second term reduces the estimation bias that comes from nonuniformity of
-the distribution near each sample point. 
-\todo{fill in the rest of the details for the estimator (e.g. asymptotic convergence
-of the estimators)} 
+where 
+\begin{align}
+    \rho(i) &= \min_{j \neq i} || X_i - X_j|| \\
+    \nu(i) &= \min_{j \neq i} || X_i - Y_j||.
+\end{align}
+For further details on the estimator and proofs that the estimator is
+asymptotically unbiased and mean-square consistent we refer readers to
+\cite{wang2009}.
