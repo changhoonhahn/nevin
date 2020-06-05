@@ -11,7 +11,7 @@ from sklearn.neighbors import NearestNeighbors
 
 
 
-def log_evidence(chain, lnlike_chain, prior_samples): 
+def log_evidence(chain, lnlike_chain, prior_samples, silent=True): 
     ''' calculate log evidence (aka Bayes Factor) 
 
     ln p(d|m) = int p(theta|d,m) ln p(d|theta,m) dtheta - D_KL( p(theta|d,m) || p(theta) )
@@ -27,6 +27,9 @@ def log_evidence(chain, lnlike_chain, prior_samples):
 
     :param prior_samples: 
         M dimensional array. M samples from the prior distribution. 
+
+    :param silent: 
+        If False, print several print statements
 
     :return log_evidence: 
         log(evidence) 
@@ -63,10 +66,12 @@ def log_evidence(chain, lnlike_chain, prior_samples):
 
     # caluclate < ln p(d|theta,m) >, the posterior mean of the log likelihood 
     exp_lnlike = 1./float(N) * np.sum(lnlike_chain)
+    if not silent: print('<ln L> = %f' % exp_lnlike)
 
     # calculate KL divergence between the posterior and prior from samples
     # drawn from them using k-th Nearest Neighbor estimator 
-    D_kl = KL_w2009_eq29(chain, prior_samples)
+    D_kl = KL_w2009_eq29(chain, prior_samples, silent=silent)
+    if not silent: print('D_KL = %f' % D_kl) 
 
     return exp_lnlike - D_kl 
 
@@ -83,7 +88,7 @@ def sample_prior(priorfn, M):
     return samples  
 
 
-def KL_w2009_eq29(X, Y):
+def KL_w2009_eq29(X, Y, silent=False):
     ''' kNN KL divergence estimate using Eq. 29 from Wang et al. (2009). 
     This has some bias reduction applied to it and a correction for 
     epsilon.
@@ -102,14 +107,18 @@ def KL_w2009_eq29(X, Y):
     dNN1_XX, _ = NN_X.kneighbors(X, n_neighbors=2)
     dNN1_XY, _ = NN_Y.kneighbors(X)
     eps = np.amax([dNN1_XX[:,1], dNN1_XY[:,0]], axis=0) * 1.000001
+    if not silent: print('  epsilons ', eps)
 
     # find l_i and k_i
     _, i_l = NN_X.radius_neighbors(X, eps)
     _, i_k = NN_Y.radius_neighbors(X, eps)
     l_i = np.array([len(il)-1 for il in i_l])
     k_i = np.array([len(ik) for ik in i_k])
-    #assert l_i.min() > 0
-    #assert k_i.min() > 0
+    assert l_i.min() > 0
+    assert k_i.min() > 0
+    if not silent: 
+        print('  l_i ', l_i)
+        print('  k_i ', k_i)
 
     rho_i = np.empty(n, dtype=float)
     nu_i = np.empty(n, dtype=float)
@@ -119,5 +128,10 @@ def KL_w2009_eq29(X, Y):
         rho_i[i] = rho_ii[0][-1]
         nu_i[i] = nu_ii[0][-1]
 
+    assert rho_i.min() > 0., 'duplicate elements in your chain'
+
     d_corr = float(d) / float(n) * np.sum(np.log(nu_i/rho_i))
-    return d_corr + np.sum(digamma(l_i) - digamma(k_i)) / float(n) + np.log(float(m)/float(n-1))
+    print('  first term = %f' % d_corr) 
+    digamma_term = np.sum(digamma(l_i) - digamma(k_i)) / float(n)
+    print('  digamma term = %f' % digamma_term)
+    return d_corr + digamma_term + np.log(float(m)/float(n-1))
